@@ -4,6 +4,6 @@
 #include "bean.h"
 
 void fwrite_worktime(char* file_path, s_worktime* worktime);
-void fwrite_task_ele(s_task * task, FILE * fp);
+void fwrite_task(s_task * task, FILE * fp);
 
 #endif

@@ -22,13 +22,13 @@ void fwrite_worktime(char* file_path, s_worktime* worktime){
 
 	// 遍历写任务
 	for(int i=0,j=worktime->tasks_len;i<j;i++){
-		fwrite_task_ele((worktime->tasks)[i],fp);
+		fwrite_task((worktime->tasks)[i],fp);
 	}
 
 	fclose(fp);
 }
 
-void fwrite_task_ele(s_task * task, FILE * fp){
+void fwrite_task(s_task * task, FILE * fp){
 	// 写当前序号
 	fwrite_int_simply(task->seq,fp);
 	fputc('\0',fp);

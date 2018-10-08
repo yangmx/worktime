@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "util.h"
 
 #define BUFFER_SIZE 4096
@@ -9,7 +11,7 @@ unsigned long get_file_size(char* file_path){
 		exit(0);
 	}
 	unsigned char buffer[BUFFER_SIZE];
-	unsigned long size = 0,temp_size = 0;
+	unsigned long size = 0,temp_size;
 	while(!feof(fp)){
 		temp_size = fread(buffer,1,BUFFER_SIZE,fp);
 		size += temp_size;
@@ -48,11 +50,37 @@ unsigned char* simply_int(int src_int,  int* simply_len){
 }
 
 char* parse_buffer_string(unsigned char* buffer,unsigned long * begin_pos,unsigned long total_size){
-	return "123";
+	int len = 0;
+	for(int i=*begin_pos;i<total_size;i++){
+		len ++;
+		if(buffer[i] == '\0'){
+			break;
+		}
+	}
+	char* str = (char*)malloc(sizeof(char) * len);
+	memcpy(str,(unsigned char*)(buffer + *begin_pos),len);
+	*begin_pos = *begin_pos + len;
+	if(*begin_pos >= total_size){
+		*begin_pos = -1;
+	}
+	return str;
 }
 
 int parse_buffer_int_simply(unsigned char* buffer,unsigned long * begin_pos,unsigned long total_size){
-	return 0;
+	int len = 0;
+	int rtn = 0;
+	for(int i=*begin_pos;i<total_size;i++){
+		len ++;
+		if(buffer[i] == '\0'){
+			break;
+		}
+		rtn = (rtn << 8) + buffer[i];
+	}
+	*begin_pos = *begin_pos + len;
+	if(*begin_pos >= total_size){
+		*begin_pos = -1;
+	}
+	return rtn;
 }
 
 void fwrite_int_simply(int var, FILE * fp){

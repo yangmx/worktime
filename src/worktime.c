@@ -8,6 +8,7 @@
 #include "worktime.h"
 #include "save.h"
 #include "parse.h"
+#include "util.h"
 
 int main(int argc, char** argv){
 	if(argc > 1){
@@ -79,30 +80,42 @@ void add(int argc, char** argv){
 }
 
 void list(int argc, char** argv){
-	s_worktime* worktime = parse_worktime(WORKTIME_FILENAME);
+	unsigned long file_size = get_file_size(WORKTIME_FILENAME);
+	unsigned char* buffer = (unsigned char*)malloc(sizeof(unsigned char)*file_size);
+	FILE* fp;
+	if((fp=fopen(WORKTIME_FILENAME,"rb+"))==NULL){
+		fprintf(stderr,"read file error");
+		exit(0);
+	}
+	fread(buffer,1,file_size,fp);
+	s_worktime* worktime = parse_worktime(buffer,file_size);
 	int tasks_len = worktime->tasks_len;
 	s_task * task;
-	struct tm * temp_time;
-	s_task_detail task_detail;
+	struct tm * temp_tm;
+	s_task_detail * task_detail;
+	int task_details_len;
+	time_t temp_time;
 	for(int i=0;i<tasks_len;i++){
 		task = (worktime->tasks)[i];
 		printf("#%u",task->seq);
 		if(task->par_seq == 1){
 			printf("[#%u]",task->par_seq);
 		}
-		printf("\t[%d]",task->state,task->title);
-		temp_time = localtime(&(task->begin_time));
-		printf("[%d/%d/%d %d:%d]", temp_time->tm_year % 100, temp_time->tm_mon+1,temp_time->tm_mday,temp_time->tm_hour,temp_time->tm_min);
-		printf("%s",task->begin_time);
+		printf("\t[%d]%s",task->state,task->title);
+		temp_tm = localtime(&(task->begin_time));
+		printf("[%d/%d/%d %d:%d]", temp_tm->tm_year % 100, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
 		if(task->end_time != 0){
-			temp_time = localtime(&(task->end_time));
-			printf("\t[%d/%d/%d %d:%d]\n", temp_time->tm_year % 100, temp_time->tm_mon+1,temp_time->tm_mday,temp_time->tm_hour,temp_time->tm_min);
+			temp_tm = localtime(&(task->end_time));
+			printf("[%d/%d/%d %d:%d]", temp_tm->tm_year % 100, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
 		}
-		int task_details_len = task->task_details_len;
+		printf("\n");
+		task_details_len = task->task_details_len;
 		for(int j=0;j<task_details_len;j++){
 			task_detail = (task->task_details)[i];
-			temp_time = localtime(&(task_detail->date * 24*60*60));
-			printf("\t[%d/%d/%d]%d\n", temp_time->tm_year % 100, temp_time->tm_mon+1,temp_time->tm_mday,task_detail->date /2, task_detail->date%2 == 0?0:5);
+			temp_time = task_detail->date * 24*60*60;
+			temp_tm = localtime(&temp_time);
+			printf("\t[%d/%d/%d]%d.%dh\n", temp_tm->tm_year % 100, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2, task_detail->cost%2 == 0?0:5);
 		}
 	}
+	fclose(fp);
 }
