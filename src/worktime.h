@@ -3,7 +3,7 @@
 
 #include "bean.h"
 
-void add(char** argv);
-void list(char** argc);
+void add(int argc, char** argv);
+void list(int argc, char** argv);
 
 #endif

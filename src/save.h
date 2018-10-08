@@ -3,7 +3,7 @@
 
 #include "bean.h"
 
-void fwrite_worktime(char*, s_worktime*);
-void fwrite_task_ele(s_task_ele * , FILE *);
+void fwrite_worktime(char* file_path, s_worktime* worktime);
+void fwrite_task_ele(s_task * task, FILE * fp);
 
 #endif
