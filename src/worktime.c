@@ -103,10 +103,10 @@ void list(int argc, char** argv){
 		}
 		printf("\t[%d]%s",task->state,task->title);
 		temp_tm = localtime(&(task->begin_time));
-		printf("[%d/%d/%d %d:%d]", temp_tm->tm_year % 100, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
+		printf("[%4d/%02d/%02d %02d:%02d]",temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
 		if(task->end_time != 0){
 			temp_tm = localtime(&(task->end_time));
-			printf("[%d/%d/%d %d:%d]", temp_tm->tm_year % 100, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
+			printf("[%4d/%02d/%02d %02d:%02d]",temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
 		}
 		printf("\n");
 		task_details_len = task->task_details_len;
@@ -114,7 +114,7 @@ void list(int argc, char** argv){
 			task_detail = (task->task_details)[i];
 			temp_time = task_detail->date * 24*60*60;
 			temp_tm = localtime(&temp_time);
-			printf("\t[%d/%d/%d]%d.%dh\n", temp_tm->tm_year % 100, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2, task_detail->cost%2 == 0?0:5);
+			printf("\t[%4d/%02d/%02d]%d.%dh\n", temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2, task_detail->cost%2 == 0?0:5);
 		}
 	}
 	fclose(fp);
