@@ -14,7 +14,7 @@ typedef struct task_ele
 	int seq;
 	int par_seq;
 	time_t time;
-	unsigned char state;//0-未完成，1-完成
+	unsigned char state;//0-鏈畬鎴愶紝1-瀹屾垚
 	char* comment;
 	s_wt_day** wt_days;
 	unsigned char wt_days_len;

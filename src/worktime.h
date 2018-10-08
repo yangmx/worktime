@@ -3,9 +3,7 @@
 
 #include "bean.h"
 
-void add(char** );
-void list(char**);
-void save_all(char*, s_worktime*);
-void fwrite_s_task_ele(s_task_ele * , FILE *);
+void add(char** argv);
+void list(char** argc);
 
 #endif
