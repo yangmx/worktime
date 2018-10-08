@@ -7,6 +7,7 @@
 
 #include "worktime.h"
 #include "save.h"
+#include "parse.h"
 
 int main(int argc, char** argv){
 	if(argc > 1){
@@ -78,5 +79,30 @@ void add(int argc, char** argv){
 }
 
 void list(int argc, char** argv){
-
+	s_worktime* worktime = parse_worktime(WORKTIME_FILENAME);
+	int tasks_len = worktime->tasks_len;
+	s_task * task;
+	struct tm * temp_time;
+	s_task_detail task_detail;
+	for(int i=0;i<tasks_len;i++){
+		task = (worktime->tasks)[i];
+		printf("#%u",task->seq);
+		if(task->par_seq == 1){
+			printf("[#%u]",task->par_seq);
+		}
+		printf("\t[%d]",task->state,task->title);
+		temp_time = localtime(&(task->begin_time));
+		printf("[%d/%d/%d %d:%d]", temp_time->tm_year % 100, temp_time->tm_mon+1,temp_time->tm_mday,temp_time->tm_hour,temp_time->tm_min);
+		printf("%s",task->begin_time);
+		if(task->end_time != 0){
+			temp_time = localtime(&(task->end_time));
+			printf("\t[%d/%d/%d %d:%d]\n", temp_time->tm_year % 100, temp_time->tm_mon+1,temp_time->tm_mday,temp_time->tm_hour,temp_time->tm_min);
+		}
+		int task_details_len = task->task_details_len;
+		for(int j=0;j<task_details_len;j++){
+			task_detail = (task->task_details)[i];
+			temp_time = localtime(&(task_detail->date * 24*60*60));
+			printf("\t[%d/%d/%d]%d\n", temp_time->tm_year % 100, temp_time->tm_mon+1,temp_time->tm_mday,task_detail->date /2, task_detail->date%2 == 0?0:5);
+		}
+	}
 }
