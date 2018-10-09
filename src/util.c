@@ -66,7 +66,7 @@ char* parse_buffer_string(unsigned char* buffer,unsigned long * begin_pos,unsign
 	return str;
 }
 
-int parse_buffer_int_simply(unsigned char* buffer,unsigned long * begin_pos,unsigned long total_size){
+unsigned int parse_buffer_int_simply(unsigned char* buffer,unsigned long * begin_pos,unsigned long total_size){
 	int len = 0;
 	int rtn = 0;
 	for(int i=*begin_pos;i<total_size;i++){
@@ -88,4 +88,18 @@ void fwrite_int_simply(int var, FILE * fp){
 	unsigned char* bytes = simply_int(var,&len);
 	fwrite(bytes,1,len,fp);
 	free(bytes);
+}
+
+char* int2str(unsigned int prev_seq){
+	char* result = "4294967295"; // int×î´óÖµ
+	int pos = strlen(result) -1;
+	int mod;
+	do{
+		mod = prev_seq%10;
+		prev_seq = prev_seq/10;
+		result[pos--] = (char)(mod + '0');
+	}while(prev_seq > 0);
+	printf("result:%s\n" , result);
+	fflush(stdout);
+	return (char*)(result + pos + 1);
 }

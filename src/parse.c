@@ -4,13 +4,27 @@
 #include "parse.h"
 #include "util.h"
 
-s_worktime* parse_worktime(unsigned char* buffer,unsigned long total_size){
+s_worktime* parse_worktime(char* file_path){
+	// ¶ÁÈ¡Êı¾İ
+	unsigned long total_size = get_file_size(file_path);
+	if(total_size == 0){
+		return NULL;
+	}
+	unsigned char* buffer = (unsigned char*)malloc(sizeof(unsigned char)*total_size);
+	FILE* fp;
+	if((fp=fopen(file_path,"rb+"))==NULL){
+		fprintf(stderr,"read file error");
+		exit(0);
+	}
+	fread(buffer,1,total_size,fp);
+	fclose(fp);
+	// ½âÎöÄÚÈİ
 	unsigned long begin_pos = 0;
 	s_worktime* worktime = (s_worktime*)malloc(sizeof(s_worktime));
-	// è¯»å–ç‰ˆæœ¬
+	// ¶ÁÈ¡°æ±¾
 	char* version = parse_buffer_string(buffer,&begin_pos,total_size);
 	worktime->version = version;
-	// è¯»å–åºåˆ—å·
+	// ¶ÁÈ¡ĞòÁĞºÅ
 	int sequence = parse_buffer_int_simply(buffer,&begin_pos,total_size);
 	worktime->sequence=sequence;
 
@@ -18,7 +32,7 @@ s_worktime* parse_worktime(unsigned char* buffer,unsigned long total_size){
 	s_task** tasks = (s_task**)malloc(sizeof(s_task*) * tasks_ary_len);
 	s_task** ext_tasks;
 	s_task* temp_task;
-	// è¯»å–ä»»åŠ¡
+	// ¶ÁÈ¡ÈÎÎñ
 	while(begin_pos != -1){
 		if(tasks_len == tasks_ary_len){
 			tasks_ary_len += 10;
@@ -38,32 +52,32 @@ s_worktime* parse_worktime(unsigned char* buffer,unsigned long total_size){
 
 s_task* parse_task(unsigned char* buffer,unsigned long * begin_pos,unsigned long total_size){
 	s_task* task = (s_task*)malloc(sizeof(s_task));
-	// è§£æåºå·
-	int seq = parse_buffer_int_simply(buffer,begin_pos,total_size);
+	// ½âÎöĞòºÅ
+	unsigned int seq = parse_buffer_int_simply(buffer,begin_pos,total_size);
 	task->seq = seq;
-	// è§£æçˆ¶åºå·
-	int par_seq = parse_buffer_int_simply(buffer,begin_pos,total_size);
+	// ½âÎö¸¸ĞòºÅ
+	unsigned int par_seq = parse_buffer_int_simply(buffer,begin_pos,total_size);
 	task->par_seq = par_seq;
-	// è§£ææ ‡é¢˜
+	// ½âÎö±êÌâ
 	char* title = parse_buffer_string(buffer,begin_pos,total_size);
 	task->title = title;
-	// è§£æçŠ¶æ€
+	// ½âÎö×´Ì¬
 	unsigned char state = buffer[*begin_pos];
 	task->state = state;
 	*begin_pos = *begin_pos + 1;
-	// è§£æå¼€å§‹æ—¶é—´
+	// ½âÎö¿ªÊ¼Ê±¼ä
 	unsigned long temp_time = (buffer[*begin_pos] << 24) + (buffer[*begin_pos + 1] << 16) + (buffer[*begin_pos+2] << 8) + buffer[*begin_pos+3];
 	task->begin_time = temp_time;
 	*begin_pos = *begin_pos + 4;
-	// è§£æç»“æŸæ—¶é—´
+	// ½âÎö½áÊøÊ±¼ä
 	temp_time = (buffer[*begin_pos] << 24) + (buffer[*begin_pos + 1] << 16) + (buffer[*begin_pos+2] << 8) + buffer[*begin_pos+3];
 	task->end_time = temp_time;
 	*begin_pos = *begin_pos + 4;
-	// è§£æå·¥æ—¶æ•°é‡
+	// ½âÎö¹¤Ê±ÊıÁ¿
 	int task_details_len = task->task_details_len = buffer[*begin_pos];
 	task->task_details_len = task_details_len;
 	*begin_pos = *begin_pos + 1;
-	// è§£æå·¥æ—¶
+	// ½âÎö¹¤Ê±
 	if(task_details_len >0){
 		s_task_detail ** task_details = (s_task_detail**)malloc(sizeof(s_task_detail*)*task_details_len);
 		short temp_date;
@@ -83,3 +97,68 @@ s_task* parse_task(unsigned char* buffer,unsigned long * begin_pos,unsigned long
 	}
 	return task;
 }
+
+unsigned int parse_input_sequence(char* seq_no){
+	int seq_no_len = strlen(seq_no);
+	if(seq_no_len < 2){
+		fprintf(stderr,"number is wrong\n");
+		exit(0);
+	}
+
+	if(*seq_no != '#'){
+		fprintf(stderr,"number is not start with #\n");
+		exit(0);
+	}
+	unsigned int value = 0,temp_val = 0;
+	for(int i=1;i<seq_no_len;i++){
+		temp_val = seq_no[i] - '0';
+		if(temp_val >= 0 && temp_val <= 9){
+			value = value * 10 + temp_val;
+		}else{
+			break;
+		}
+	}
+	if(value == 0){
+		fprintf(stderr,"number is wrong\n");
+		exit(0);
+	}
+	return value;
+}
+
+unsigned int parse_input_duration(char* work_time){
+	int len = strlen(work_time);
+
+	unsigned int value = 0,temp_val = 0;
+	char temp_char;
+	int next_is_decimal = 0;
+	int is_odd = 0;
+	for(int i=0;i<len;i++){
+		temp_char = work_time[i];
+		if(temp_char == '.'){
+			next_is_decimal = 1;
+			continue;
+		}
+		if(next_is_decimal == 1){
+			if(temp_char == '5'){
+				is_odd = 1;
+			}
+			break;
+		}
+		temp_val = temp_char - '0';
+		if(temp_val >= 0 && temp_val <= 9){
+			value = value * 10 + temp_val;
+		}else{
+			break;
+		}
+	}
+	value = value << 1;
+	if(is_odd){
+		value ++;
+	}
+	if(value == 0){
+		fprintf(stderr,"number is wrong\n");
+		exit(0);
+	}
+	return value;
+}
+

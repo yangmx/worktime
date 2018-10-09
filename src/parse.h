@@ -3,7 +3,10 @@
 
 #include "bean.h"
 
-s_worktime* parse_worktime(unsigned char* buffer,unsigned long total_size);
+s_worktime* parse_worktime(char* file_path);
 s_task* parse_task(unsigned char* buffer,unsigned long * begin_pos,unsigned long total_size);
+
+unsigned int parse_input_sequence(char* seq_no);
+unsigned int parse_input_duration(char* work_time);
 
 #endif

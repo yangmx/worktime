@@ -11,12 +11,12 @@ typedef struct task_detail
 
 typedef struct task
 {
-	int seq;
-	int par_seq;
+	unsigned int seq;
+	unsigned int par_seq;
 	char* title;
 	s_task_detail** task_details;
 	unsigned char task_details_len;
-	unsigned char state;//0-鏈畬鎴愶紝1-瀹屾垚
+	unsigned char state;//0-未完成，1-完成
 	time_t begin_time;
 	time_t end_time;
 
@@ -25,9 +25,10 @@ typedef struct task
 typedef struct worktime
 {
 	char * version;
-	int sequence;
+	unsigned int sequence;
+	unsigned int prev_seq;
 	s_task** tasks;
-	int tasks_len;
+	unsigned int tasks_len;
 } s_worktime;
 
 #endif

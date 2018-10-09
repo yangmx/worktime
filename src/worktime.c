@@ -18,13 +18,149 @@ int main(int argc, char** argv){
 		}else if(strcmp("list",argv[1]) == 0){
 			list(argc, argv);
 		}else if(strcmp("awk",argv[1]) == 0){
-			printf("澧炲姞宸ユ椂");
+			add_work_time(argc, argv);
 		}else if(strcmp("cmp",argv[1]) == 0){
-			printf("瀹屾垚浠诲姟");
+			finish_task(argc, argv);
 		}else if(strcmp("del",argv[1]) == 0){
-			printf("鍒犻櫎浠诲姟");
+			delete_task(argc, argv);
 		}
 	}
+}
+
+void delete_task(int argc, char** argv){
+	if(argc != 3){
+		fprintf(stderr,"the input is wrong\n");
+		exit(0);
+	}
+	char* seq_no = argv[2];
+
+	unsigned int sequence = parse_input_sequence(seq_no);
+	// 解析原数据
+	s_worktime* worktime = parse_worktime(WORKTIME_FILENAME);
+	if(worktime == NULL){
+		fprintf(stderr,"file is empty\n");
+		exit(0);
+	}
+	int tasks_len = worktime->tasks_len;
+	s_task** tasks = worktime->tasks;
+	s_task* task = NULL;
+	for(int i=0;i< tasks_len;i++){
+		if(task != NULL){
+			tasks[i-1] = tasks[i];
+		} else if(tasks[i]->seq == sequence){
+			task = tasks[i];
+		}
+	}
+	if(task == NULL){
+		fprintf(stderr,"not found\n");
+		exit(0);
+	}
+	tasks_len --;
+	worktime->tasks_len = tasks_len;
+
+	// 保存
+	fwrite_worktime(WORKTIME_FILENAME,worktime);
+
+	printf("success\n");
+}
+
+void finish_task(int argc, char** argv){
+	if(argc != 3){
+		fprintf(stderr,"the input is wrong\n");
+		exit(0);
+	}
+	char* seq_no = argv[2];
+
+	unsigned int sequence = parse_input_sequence(seq_no);
+	// 解析原数据
+	s_worktime* worktime = parse_worktime(WORKTIME_FILENAME);
+	if(worktime == NULL){
+		fprintf(stderr,"file is empty\n");
+		exit(0);
+	}
+	int tasks_len = worktime->tasks_len;
+	s_task** tasks = worktime->tasks;
+	s_task* task = NULL;
+	for(int i=0;i< tasks_len;i++){
+		if(tasks[i]->seq == sequence){
+			task = tasks[i];
+			break;
+		}
+	}
+	if(task == NULL){
+		fprintf(stderr,"not found\n");
+		exit(0);
+	}
+	task->state = 1;
+	task->end_time = time(NULL);
+
+	// 保存
+	fwrite_worktime(WORKTIME_FILENAME,worktime);
+
+	printf("success\n");
+}
+
+void add_work_time(int argc, char** argv){
+	if(argc != 4){
+		fprintf(stderr,"the input is wrong\n");
+		exit(0);
+	}
+	char* seq_no = argv[2];
+	char* work_time = argv[3];
+
+	unsigned int sequence = parse_input_sequence(seq_no);
+	unsigned int duration = parse_input_duration(work_time);
+
+	// 解析原数据
+	s_worktime* worktime = parse_worktime(WORKTIME_FILENAME);
+	if(worktime == NULL){
+		fprintf(stderr,"file is empty\n");
+		exit(0);
+	}
+	int tasks_len = worktime->tasks_len;
+	s_task** tasks = worktime->tasks;
+	s_task* task = NULL;
+	for(int i=0;i< tasks_len;i++){
+		if(tasks[i]->seq == sequence){
+			task = tasks[i];
+			break;
+		}
+	}
+	if(task == NULL){
+		fprintf(stderr,"not found\n");
+		exit(0);
+	}
+
+	s_task_detail** details = task->task_details;
+	int detail_len = task->task_details_len;
+
+	time_t curr_time = time(NULL);
+	// 创建任务详情
+	s_task_detail* detail = (s_task_detail*)malloc(sizeof(s_task_detail));
+	detail->date = curr_time/24/60/60;
+	detail->cost = duration;
+
+	// 加入对象
+	if(detail_len == 0){
+		details = (s_task_detail**)malloc(sizeof(s_task_detail*));
+	}else{
+		s_task_detail** temp_details = (s_task_detail**)malloc(sizeof(s_task_detail*) * (detail_len + 1));
+		for(int i=0;i<detail_len;i++){
+			temp_details[i] = details[i];
+		}
+		free(details);
+		details = temp_details;
+	}
+	detail_len += 1;
+	details[detail_len -1] = detail;
+
+	task->task_details = details;
+	task->task_details_len = detail_len;
+
+	// 保存
+	fwrite_worktime(WORKTIME_FILENAME,worktime);
+
+	printf("success\n");
 }
 
 void add(int argc, char** argv){
@@ -33,65 +169,70 @@ void add(int argc, char** argv){
 		exit(0);
 	}
 	char* title = argv[2];
-//	printf("%s %s\n",getenv("LANG"),title);
-//	printf("%s\n",setlocale(LC_ALL, ""));
+
+	// 解析原数据
+	s_worktime* worktime = parse_worktime(WORKTIME_FILENAME);
+	if(worktime == NULL){
+		// 创建工作空间
+		worktime = (s_worktime*)malloc(sizeof(s_worktime));
+		worktime->version = "V1.0";
+		worktime->sequence = 0;
+		worktime->tasks_len = 0;
+		worktime->tasks = NULL;
+	}
 
 	time_t curr_time = time(NULL);
+	// 获取下一序列值
+	int next_seq = (worktime->sequence) + 1;
+	worktime->sequence = next_seq;
 
-	// 鍒涘缓浠诲姟璇︽儏
-	s_task_detail* task_detail1 = (s_task_detail*)malloc(sizeof(s_task_detail));
-	task_detail1->date = curr_time/24/60/60;
-	task_detail1->cost = 7;
+	// 创建任务
+	s_task* task = (s_task*)malloc(sizeof(s_task));
+	task->title=title;
+	task->seq = next_seq;
+	task->par_seq = 0;
+	task->state = 0;
+	task->begin_time=curr_time;
+	task->end_time=0;
+	task->task_details_len = 0;
 
-	s_task_detail* task_detail2 = (s_task_detail*)malloc(sizeof(s_task_detail));
-	task_detail2->date = curr_time/24/60/60;
-	task_detail2->cost = 8;
+	int tasks_len = worktime->tasks_len;
+	// 初始化任务集合
+	s_task** tasks = worktime->tasks;
+	if(tasks == NULL){
+		tasks = (s_task**)malloc(sizeof(s_task*));
+		worktime->tasks = tasks;
+		worktime->tasks_len = 1;
 
-	s_task_detail* task_details[2];
-	task_details[0] = task_detail1;
-	task_details[1] = task_detail2;
+		// 增加新元素
+		tasks_len = 1;
+		tasks[tasks_len - 1] = task;
+	}else{
+		// 扩展空间
+		s_task** temp_tasks = (s_task**)malloc(sizeof(s_task*) * (tasks_len + 1));
+		for(int i=0;i<tasks_len;i++){
+			temp_tasks[i] = tasks[i];
+		}
+		free(tasks);
+		tasks = temp_tasks;
+		worktime->tasks = tasks;
+		worktime->tasks_len = tasks_len + 1;
 
-	// 鍒涘缓浠诲姟
-	s_task* task1 = (s_task*)malloc(sizeof(s_task));
-	task1->title=title;
-	task1->seq = 1;
-	task1->par_seq = 0;
-	task1->state = 0;
-	task1->begin_time=curr_time;
-	task1->end_time=0;
-	task1->task_details_len = 2;
-	task1->task_details = task_details;
+		// 增加新元素
+		tasks_len ++;
+		tasks[tasks_len - 1] = task;
+	}
 
-	s_task* tasks[1];
-	tasks[0] = task1;
-
-	// 鍒涘缓宸ヤ綔绌洪棿
-	s_worktime* worktime = (s_worktime*)malloc(sizeof(s_worktime));
-	worktime->version = "V1.0";
-	worktime->sequence = 1;
-	worktime->tasks_len = 1;
-	worktime->tasks = tasks;
-
-	// 淇濆瓨
+	// 保存
 	fwrite_worktime(WORKTIME_FILENAME,worktime);
 
 	printf("success\n");
 
-	free(task1);
-	free(task_detail1);
-	free(task_detail2);
+	free(task);
 }
 
 void list(int argc, char** argv){
-	unsigned long file_size = get_file_size(WORKTIME_FILENAME);
-	unsigned char* buffer = (unsigned char*)malloc(sizeof(unsigned char)*file_size);
-	FILE* fp;
-	if((fp=fopen(WORKTIME_FILENAME,"rb+"))==NULL){
-		fprintf(stderr,"read file error");
-		exit(0);
-	}
-	fread(buffer,1,file_size,fp);
-	s_worktime* worktime = parse_worktime(buffer,file_size);
+	s_worktime* worktime = parse_worktime(WORKTIME_FILENAME);
 	int tasks_len = worktime->tasks_len;
 	s_task * task;
 	struct tm * temp_tm;
@@ -112,13 +253,14 @@ void list(int argc, char** argv){
 			printf("[%4d/%02d/%02d %02d:%02d]",temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
 		}
 		printf("\n");
+		fflush(stdout);
 		task_details_len = task->task_details_len;
 		for(int j=0;j<task_details_len;j++){
-			task_detail = (task->task_details)[i];
+			task_detail = (task->task_details)[j];
 			temp_time = task_detail->date * 24*60*60;
 			temp_tm = localtime(&temp_time);
-			printf("\t[%4d/%02d/%02d]%d.%dh\n", temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2, task_detail->cost%2 == 0?0:5);
+			printf("\t--[%4d/%02d/%02d]%d.%dh\n", temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2, task_detail->cost%2 == 0?0:5);
+			fflush(stdout);
 		}
 	}
-	fclose(fp);
 }
