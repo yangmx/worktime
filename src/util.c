@@ -6,9 +6,8 @@
 
 unsigned long get_file_size(char* file_path){
 	FILE* fp;
-	if((fp = fopen(file_path,"rb+")) == NULL){
-		fprintf(stderr,"open %s file fail", file_path);
-		exit(0);
+	if((fp = fopen(file_path,"rb")) == NULL){
+		return 0;
 	}
 	unsigned char buffer[BUFFER_SIZE];
 	unsigned long size = 0,temp_size;
@@ -91,15 +90,15 @@ void fwrite_int_simply(int var, FILE * fp){
 }
 
 char* int2str(unsigned int prev_seq){
-	char* result = "4294967295"; // int最大值
+	char* result = (char*)malloc(strlen("4294967295")); // int最大值
 	int pos = strlen(result) -1;
 	int mod;
+	fflush(stdout);
 	do{
 		mod = prev_seq%10;
 		prev_seq = prev_seq/10;
-		result[pos--] = (char)(mod + '0');
+		result[pos] = mod + '0';
+		pos--;
 	}while(prev_seq > 0);
-	printf("result:%s\n" , result);
-	fflush(stdout);
 	return (char*)(result + pos + 1);
 }

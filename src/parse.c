@@ -12,9 +12,8 @@ s_worktime* parse_worktime(char* file_path){
 	}
 	unsigned char* buffer = (unsigned char*)malloc(sizeof(unsigned char)*total_size);
 	FILE* fp;
-	if((fp=fopen(file_path,"rb+"))==NULL){
-		fprintf(stderr,"read file error");
-		exit(0);
+	if((fp=fopen(file_path,"rb"))==NULL){
+		return NULL;
 	}
 	fread(buffer,1,total_size,fp);
 	fclose(fp);
@@ -24,6 +23,9 @@ s_worktime* parse_worktime(char* file_path){
 	// 读取版本
 	char* version = parse_buffer_string(buffer,&begin_pos,total_size);
 	worktime->version = version;
+	// 读取上一个备份号
+	int prev_seq = parse_buffer_int_simply(buffer,&begin_pos,total_size);
+	worktime->prev_seq=prev_seq;
 	// 读取序列号
 	int sequence = parse_buffer_int_simply(buffer,&begin_pos,total_size);
 	worktime->sequence=sequence;

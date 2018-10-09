@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <io.h>
 
 #include "bean.h"
 #include "save.h"
@@ -10,26 +11,32 @@
 
 void backup_file(char* file_path,unsigned int prev_seq){
 	FILE* src_fp;
-	if((src_fp = fopen(file_path,"r")) != NULL){
+	if((src_fp = fopen(file_path,"rb")) != NULL){
+		// 判断文件夹是否存在
+		if(access(BACKUP_DIR,F_OK) == -1){
+			system("mkdir .backups");
+			system("attrib +h .backups");
+		}
+		// 生成路径字符串
 		char* prev_seq_str = int2str(prev_seq);
 		int bk_file_path_len = strlen(BACKUP_DIR) + 1 + strlen(file_path) + 1 + strlen(prev_seq_str);
-		printf("backup file path :%u\n", bk_file_path_len);
-		fflush(stdout);
 		char * bk_file_path = (char*)malloc(sizeof(char) * (bk_file_path_len + 1));
-		strcat(bk_file_path,BACKUP_DIR);
+		memcpy(bk_file_path,BACKUP_DIR,strlen(BACKUP_DIR) + 1);
 		strcat(bk_file_path,"/");
 		strcat(bk_file_path,file_path);
 		strcat(bk_file_path,".");
 		strcat(bk_file_path,prev_seq_str);
-		printf("backup file path :%s\n", bk_file_path);
-		fflush(stdout);
-//		FILE * dest_fp;
-//		if((dest_fp = fopen(bk_file_path,"wb+")) != NULL){
-//
-//		}
-	}else{
-		printf("src file not exists!");
-		fflush(stdout);
+		FILE * dest_fp;
+		if((dest_fp = fopen(bk_file_path,"wb+")) != NULL){
+			unsigned char * buffer[4096];
+			int buffer_pos = 0;
+			while(!feof(src_fp)){
+				buffer_pos = fread(buffer,1,4096,src_fp);
+				fwrite(buffer,1,buffer_pos,dest_fp);
+			}
+		}
+//		fclose(dest_fp);
+		fclose(src_fp);
 	}
 }
 
@@ -45,6 +52,10 @@ void fwrite_worktime(char* file_path, s_worktime* worktime){
 	}
 	// 写版本号
 	fwrite(worktime->version,1,strlen(worktime->version),fp);
+	fputc('\0',fp);
+
+	// 写上一个备份号
+	fwrite_int_simply(worktime->prev_seq,fp);
 	fputc('\0',fp);
 
 	// 写序列号

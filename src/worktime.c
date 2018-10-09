@@ -23,6 +23,9 @@ int main(int argc, char** argv){
 			finish_task(argc, argv);
 		}else if(strcmp("del",argv[1]) == 0){
 			delete_task(argc, argv);
+		}else{
+			fprintf(stderr,"command is wrong\n");
+			exit(0);
 		}
 	}
 }
@@ -51,15 +54,13 @@ void delete_task(int argc, char** argv){
 			task = tasks[i];
 		}
 	}
-	if(task == NULL){
-		fprintf(stderr,"not found\n");
-		exit(0);
-	}
-	tasks_len --;
-	worktime->tasks_len = tasks_len;
+	if(task != NULL){
+		tasks_len --;
+		worktime->tasks_len = tasks_len;
 
-	// 保存
-	fwrite_worktime(WORKTIME_FILENAME,worktime);
+		// 保存
+		fwrite_worktime(WORKTIME_FILENAME,worktime);
+	}
 
 	printf("success\n");
 }
@@ -91,11 +92,13 @@ void finish_task(int argc, char** argv){
 		fprintf(stderr,"not found\n");
 		exit(0);
 	}
-	task->state = 1;
-	task->end_time = time(NULL);
+	if(task->state == 0){
+		task->state = 1;
+		task->end_time = time(NULL);
 
-	// 保存
-	fwrite_worktime(WORKTIME_FILENAME,worktime);
+		// 保存
+		fwrite_worktime(WORKTIME_FILENAME,worktime);
+	}
 
 	printf("success\n");
 }
@@ -232,6 +235,16 @@ void add(int argc, char** argv){
 }
 
 void list(int argc, char** argv){
+	int show_all = 0;
+	int show_detail = 1;
+	for(int i=2;i<argc;i++){
+		if(strcmp("-a",argv[i]) == 0){
+			show_all = 1;
+		}else if(strcmp("-h",argv[i]) == 0){
+			show_detail = 0;
+		}
+	}
+
 	s_worktime* worktime = parse_worktime(WORKTIME_FILENAME);
 	int tasks_len = worktime->tasks_len;
 	s_task * task;
@@ -239,13 +252,29 @@ void list(int argc, char** argv){
 	s_task_detail * task_detail;
 	int task_details_len;
 	time_t temp_time;
+	int total_worktime;
 	for(int i=0;i<tasks_len;i++){
 		task = (worktime->tasks)[i];
+		if(task->state == 1 && show_all == 0){
+			continue;
+		}
 		printf("#%u",task->seq);
 		if(task->par_seq == 1){
 			printf("[#%u]",task->par_seq);
 		}
-		printf("\t[%d]%s",task->state,task->title);
+		// 计算总工时消耗
+		total_worktime = 0;
+		task_details_len = task->task_details_len;
+		for(int j=0;j<task_details_len;j++){
+			total_worktime += (task->task_details)[j]->cost;
+		}
+		printf("\t[%d]",task->state);
+		if(total_worktime % 2 == 0){
+			printf("[%dh]", total_worktime / 2);
+		}else{
+			printf("[%d.5h]", total_worktime / 2);
+		}
+		printf("%s", task->title);
 		temp_tm = localtime(&(task->begin_time));
 		printf("[%4d/%02d/%02d %02d:%02d]",temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
 		if(task->end_time != 0){
@@ -254,13 +283,19 @@ void list(int argc, char** argv){
 		}
 		printf("\n");
 		fflush(stdout);
-		task_details_len = task->task_details_len;
-		for(int j=0;j<task_details_len;j++){
-			task_detail = (task->task_details)[j];
-			temp_time = task_detail->date * 24*60*60;
-			temp_tm = localtime(&temp_time);
-			printf("\t--[%4d/%02d/%02d]%d.%dh\n", temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2, task_detail->cost%2 == 0?0:5);
-			fflush(stdout);
+		// 显示工时详情
+		if(show_detail){
+			for(int j=0;j<task_details_len;j++){
+				task_detail = (task->task_details)[j];
+				temp_time = task_detail->date * 24*60*60;
+				temp_tm = localtime(&temp_time);
+				if(task_detail->cost % 2 == 0){
+					printf("\t--[%4d/%02d/%02d]%dh\n", temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2);
+				} else{
+					printf("\t--[%4d/%02d/%02d]%d.5h\n", temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2);
+				}
+				fflush(stdout);
+			}
 		}
 	}
 }
