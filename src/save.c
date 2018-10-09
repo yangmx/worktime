@@ -40,18 +40,26 @@ void fwrite_task(s_task * task, FILE * fp){
 	fputc('\0',fp);
 
 	// 写标题
-	fwrite(task->title,1,strlen(task->title),fp);
-	fputc('\0',fp);
+	fwrite(task->title,1,strlen(task->title) + 1,fp);
 
 	// 写状态
-	fwrite(&(task->state),1,1,fp);
+	fputc(task->state,fp);
 
 	// 写日期
-	fwrite(&(task->begin_time),4,1,fp);
-	fwrite(&(task->end_time),4,1,fp);
+	long temp_time = task->begin_time;
+	fputc(temp_time >> 24,fp);
+	fputc(temp_time >> 16,fp);
+	fputc(temp_time >> 8,fp);
+	fputc(temp_time,fp);
+
+	temp_time = task->end_time;
+	fputc(temp_time >> 24,fp);
+	fputc(temp_time >> 16,fp);
+	fputc(temp_time >> 8,fp);
+	fputc(temp_time,fp);
 
 	// 写工时数量
-	fwrite(&(task->task_details_len),1,1,fp);
+	fputc(task->task_details_len,fp);
 
 	int date;
 	for(int i=0,j=task->task_details_len;i<j;i++){
@@ -60,7 +68,7 @@ void fwrite_task(s_task * task, FILE * fp){
 		fputc(date >> 8,fp);
 		fputc(date,fp);
 		// 写工时时间
-		fwrite(&((task->task_details)[i]->cost),1,1,fp);
+		fputc((task->task_details)[i]->cost,fp);
 	}
 }
 

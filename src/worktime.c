@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <locale.h>
 
 #include "worktime.h"
 #include "save.h"
@@ -32,6 +33,8 @@ void add(int argc, char** argv){
 		exit(0);
 	}
 	char* title = argv[2];
+//	printf("%s %s\n",getenv("LANG"),title);
+//	printf("%s\n",setlocale(LC_ALL, ""));
 
 	time_t curr_time = time(NULL);
 
