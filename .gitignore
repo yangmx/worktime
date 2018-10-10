@@ -56,5 +56,6 @@ dkms.conf
 .cproject
 .project
 worktime.wt
-.backups/
+.wt_backups/
+.wt_histories/
 .out/

@@ -3,7 +3,9 @@
 
 #include <time.h>
 
-#define BACKUP_DIR ".backups"
+#define WORKTIME_FILENAME "worktime.wt"
+#define HISTORY_DIR ".wt_histories"
+#define BACKUP_DIR ".wt_backups"
 
 typedef struct task_detail
 {

@@ -8,7 +8,7 @@
 #include "util.h"
 #include "parse.h"
 
-void backup_file(char* file_path){
+void backup_file_history(char* file_path){
 	unsigned int next_seq = find_curr_backup_seq();
 	next_seq ++;
 
@@ -16,7 +16,7 @@ void backup_file(char* file_path){
 	if((src_fp = fopen(file_path,"rb")) != NULL){
 		// 生成路径字符串
 		char* string_ary[5];
-		string_ary[0] = BACKUP_DIR;
+		string_ary[0] = HISTORY_DIR;
 		string_ary[1] = "/";
 		string_ary[2] = file_path;
 		string_ary[3] = ".";
@@ -37,12 +37,48 @@ void backup_file(char* file_path){
 	}
 }
 
+void backup_file_special(char* file_path, char * dest_file_name){
+	// 判断文件夹是否存在
+	if (access(BACKUP_DIR, F_OK) == -1) {
+		char* ary[2];
+		// 创建目录
+		ary[0] = "mkdir ";
+		ary[1] = BACKUP_DIR;
+		system(concat_string(ary, 2));
+		// 配置隐藏属性
+		ary[0] = "attrib +h ";
+		system(concat_string(ary, 2));
+	}
+
+	FILE* src_fp;
+	if((src_fp = fopen(file_path,"rb")) != NULL){
+		// 生成路径字符串
+		char* string_ary[3];
+		string_ary[0] = BACKUP_DIR;
+		string_ary[1] = "/";
+		string_ary[2] = dest_file_name;
+		char * bk_file_path = concat_string(string_ary, 3);
+
+		FILE * dest_fp;
+		if((dest_fp = fopen(bk_file_path,"wb+")) != NULL){
+			unsigned char * buffer[4096];
+			int buffer_pos = 0;
+			while(!feof(src_fp)){
+				buffer_pos = fread(buffer,1,4096,src_fp);
+				fwrite(buffer,1,buffer_pos,dest_fp);
+			}
+			fclose(dest_fp);
+		}
+		fclose(src_fp);
+	}
+}
+
 void restore_file(char* file_path){
 	unsigned int curr_seq = find_curr_backup_seq();
 
 	// 生成路径字符串
 	char* string_ary[5];
-	string_ary[0] = BACKUP_DIR;
+	string_ary[0] = HISTORY_DIR;
 	string_ary[1] = "/";
 	string_ary[2] = file_path;
 	string_ary[3] = ".";
@@ -72,7 +108,7 @@ void restore_file(char* file_path){
 
 void fwrite_worktime(char* file_path, s_worktime* worktime){
 	// 备份文件
-	backup_file(file_path);
+	backup_file_history(file_path);
 	// 打开写文件
 	FILE* fp;
 	if((fp = fopen(file_path,"wb+")) == NULL){
@@ -148,21 +184,33 @@ void fwrite_task(s_task * task, FILE * fp){
 
 unsigned int find_curr_backup_seq(){
 	// 判断文件夹是否存在
-	if(access(BACKUP_DIR,F_OK) == -1){
-		system("mkdir .backups");
-		system("attrib +h .backups");
+	if(access(HISTORY_DIR,F_OK) == -1){
+		char* ary[2];
+		// 创建目录
+		ary[0] = "mkdir ";
+		ary[1] = HISTORY_DIR;
+		system(concat_string(ary,2));
+		// 配置隐藏属性
+		ary[0] = "attrib +h ";
+		system(concat_string(ary,2));
 	}
 	intptr_t handle;
 	struct _finddata_t * findData = (struct _finddata_t *) malloc(
 			sizeof(struct _finddata_t));
-	handle = _findfirst(".backups\\worktime.wt.*", findData);    // 查找目录中的第一个文件
+
+	char* ary[4];
+	ary[0] = HISTORY_DIR;
+	ary[1] = "\\";
+	ary[2] = WORKTIME_FILENAME;
+	ary[3] = ".*";
+	handle = _findfirst(concat_string(ary,4), findData);    // 查找目录中的第一个文件
 	if (handle == -1) {
-		return 1;
+		return 0;
 	}
 
 	char* temp_file_name;
 	int curr_max_value = 1,temp_value;
-	int prev_len = strlen("worktime.wt.");
+	int prev_len = strlen(WORKTIME_FILENAME) + 1;
 	do {
 		if (findData->attrib & _A_SUBDIR) {
 			continue;

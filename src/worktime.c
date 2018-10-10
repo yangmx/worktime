@@ -1,5 +1,3 @@
-#define WORKTIME_FILENAME "worktime.wt"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,23 +11,65 @@
 
 int main(int argc, char** argv){
 	if(argc > 1){
-		if(strcmp("t",argv[1])==0){
+		if(strcmp("t",argv[1])==0 || strcmp("task",argv[1])==0){
 			add(argc, argv);
-		}else if(strcmp("l",argv[1]) == 0){
-			list(argc, argv);
-		}else if(strcmp("h",argv[1]) == 0){
+		}else if(strcmp("l",argv[1]) == 0 || strcmp("list",argv[1])==0){
+			list(argc, argv,WORKTIME_FILENAME);
+		}else if(strcmp("h",argv[1]) == 0 || strcmp("hour",argv[1])==0){
 			add_work_time(argc, argv);
-		}else if(strcmp("c",argv[1]) == 0){
+		}else if(strcmp("c",argv[1]) == 0 || strcmp("complete",argv[1])==0){
 			finish_task(argc, argv);
-		}else if(strcmp("d",argv[1]) == 0){
+		}else if(strcmp("d",argv[1]) == 0 || strcmp("delete",argv[1])==0){
 			delete_task(argc, argv);
-		}else if(strcmp("r",argv[1]) == 0){
+		}else if(strcmp("r",argv[1]) == 0 || strcmp("restore",argv[1])==0){
 			restore_task(argc, argv);
+		}else if(strcmp("ac",argv[1]) == 0 || strcmp("achieve",argv[1])==0){
+			backup_task(argc, argv);
+		}else if(strcmp("ck",argv[1]) == 0 || strcmp("check",argv[1])==0){
+			check_task(argc, argv);
 		}else{
 			fprintf(stderr,"command is wrong\n");
 			exit(0);
 		}
 	}
+}
+
+void check_task(int argc, char** argv){
+	if(argc < 3){
+		fprintf(stderr, "the input is wrong\n");
+		exit(0);
+	}
+	char* date = argv[2];
+
+	char* ary[5];
+	ary[0] = BACKUP_DIR;
+	ary[1] = "/";
+	ary[2] = WORKTIME_FILENAME;
+	ary[3] = ".";
+	ary[4] = date;
+	char * src_file_name = concat_string(ary,5);
+
+	if(argc > 3){
+		argv[2] = argv[3];
+	}
+	list(argc, argv, src_file_name);
+}
+
+void backup_task(int argc, char** argv){
+	if(argc < 3){
+		fprintf(stderr, "the input is wrong\n");
+		exit(0);
+	}
+	char* date = argv[2];
+
+	char* ary[3];
+	ary[0] = WORKTIME_FILENAME;
+	ary[1] = ".";
+	ary[2] = date;
+	char * src_file_name = concat_string(ary,3);
+	backup_file_special(WORKTIME_FILENAME, src_file_name);
+
+	printf("backup success! file name:[%s]\n" , src_file_name);
 }
 
 void restore_task(int argc, char** argv){
@@ -68,7 +108,7 @@ void delete_task(int argc, char** argv){
 		fwrite_worktime(WORKTIME_FILENAME,worktime);
 	}
 
-	printf("success\n");
+	printf("delete success! number is #%d\n" , sequence);
 }
 
 void finish_task(int argc, char** argv){
@@ -106,7 +146,7 @@ void finish_task(int argc, char** argv){
 		fwrite_worktime(WORKTIME_FILENAME,worktime);
 	}
 
-	printf("success\n");
+	printf("finish success! number is #%d\n" , sequence);
 }
 
 void add_work_time(int argc, char** argv){
@@ -174,7 +214,7 @@ void add_work_time(int argc, char** argv){
 	// ±£´æ
 	fwrite_worktime(WORKTIME_FILENAME,worktime);
 
-	printf("success\n");
+	printf("work time add success! number is #%d\n" , sequence);
 }
 
 void add(int argc, char** argv){
@@ -240,12 +280,12 @@ void add(int argc, char** argv){
 	// ±£´æ
 	fwrite_worktime(WORKTIME_FILENAME,worktime);
 
-	printf("success\n");
+	printf("task add success! number is #%d\n" , worktime->sequence);
 
 	free(task);
 }
 
-void list(int argc, char** argv){
+void list(int argc, char** argv, char* file_path){
 	int show_all = 0;
 	int show_detail = 1;
 	int show_time = 0;
@@ -263,7 +303,7 @@ void list(int argc, char** argv){
 		}
 	}
 
-	s_worktime* worktime = parse_worktime(WORKTIME_FILENAME);
+	s_worktime* worktime = parse_worktime(file_path);
 	if(worktime == NULL){
 		fprintf(stderr,"file is empty\n");
 		exit(0);

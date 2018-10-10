@@ -25,7 +25,7 @@ unsigned long get_file_size(char* file_path){
 	intptr_t handle;
 	struct _finddata_t * findData = (struct _finddata_t *) malloc(
 			sizeof(struct _finddata_t));
-	handle = _findfirst("worktime.wt", findData);    // 查找目录中的第一个文件
+	handle = _findfirst(file_path, findData);    // 查找目录中的第一个文件
 	if (handle == -1) {
 		return 0;
 	}
@@ -65,7 +65,7 @@ s_worktime* parse_worktime(char* file_path){
 	int sequence = parse_buffer_int_simply(buffer,&begin_pos,total_size);
 	worktime->sequence=sequence;
 
-	int tasks_len = 0, tasks_ary_len = 10;
+	int tasks_len = 0, tasks_ary_len = 20;
 	s_task** tasks = (s_task**)malloc(sizeof(s_task*) * tasks_ary_len);
 	s_task** ext_tasks;
 	s_task* temp_task;
@@ -74,7 +74,9 @@ s_worktime* parse_worktime(char* file_path){
 		if(tasks_len == tasks_ary_len){
 			tasks_ary_len += 10;
 			ext_tasks = (s_task**)malloc(sizeof(s_task*) * tasks_ary_len);
-			memcpy(ext_tasks,tasks,tasks_len);
+			for(int i=0;i<tasks_len;i++){
+				ext_tasks[i] = tasks[i];
+			}
 			free(tasks);
 			tasks = ext_tasks;
 		}
@@ -134,7 +136,7 @@ s_task* parse_task(unsigned char* buffer,unsigned long * begin_pos,unsigned long
 		}
 		task->task_details = task_details;
 	}
-	if(*begin_pos == total_size){
+	if(*begin_pos >= total_size){
 		*begin_pos = -1;
 	}
 	return task;
