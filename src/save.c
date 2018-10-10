@@ -129,13 +129,20 @@ void fwrite_task(s_task * task, FILE * fp){
 	fputc(task->task_details_len,fp);
 
 	int date;
+	s_task_detail* detail;
 	for(int i=0,j=task->task_details_len;i<j;i++){
+		detail = (task->task_details)[i];
+		if(detail->title != NULL){
+			fwrite(detail->title,1,strlen(detail->title) + 1,fp);
+		}else{
+			fputc('\0',fp);
+		}
 		// 写工时日期
-		date = (task->task_details)[i]->date;
+		date = detail->date;
 		fputc(date >> 8,fp);
 		fputc(date,fp);
 		// 写工时时间
-		fputc((task->task_details)[i]->cost,fp);
+		fputc(detail->cost,fp);
 	}
 }
 

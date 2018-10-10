@@ -18,6 +18,8 @@ void fwrite_int_simply(int var, FILE * fp);
 char* int2str(unsigned int prev_seq,int min_len);
 
 char* concat_string(char** str_ary, int len);
+char* creat_space_string(int len);
+
 void print_row_ary(s_print_row** two_level_char_ary,int size);
 void print_space(int len);
 #endif

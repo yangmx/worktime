@@ -8,6 +8,7 @@
 typedef struct task_detail
 {
 	short date;
+	char* title;
 	unsigned char cost;
 } s_task_detail;
 

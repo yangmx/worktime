@@ -121,8 +121,13 @@ s_task* parse_task(unsigned char* buffer,unsigned long * begin_pos,unsigned long
 		s_task_detail * task_detail;
 		for(int i=0;i<task_details_len;i++){
 			task_detail = (s_task_detail*)malloc(sizeof(s_task_detail));
+			// 解析标题
+			title = parse_buffer_string(buffer,begin_pos,total_size);
+			task_detail->title = title;
+			// 解析日期
 			temp_date = (buffer[*begin_pos] << 8) + buffer[*begin_pos+1];
 			task_detail ->date = temp_date;
+			// 解析工时消耗
 			task_detail->cost = buffer[*begin_pos + 2];
 			task_details[i] = task_detail;
 			*begin_pos = *begin_pos + 3;

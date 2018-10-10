@@ -110,12 +110,16 @@ void finish_task(int argc, char** argv){
 }
 
 void add_work_time(int argc, char** argv){
-	if(argc != 4){
+	if(argc < 4){
 		fprintf(stderr,"the input is wrong\n");
 		exit(0);
 	}
 	char* seq_no = argv[2];
 	char* work_time = argv[3];
+	char* title = NULL;
+	if(argc > 4){
+		title = argv[4];
+	}
 
 	unsigned int sequence = parse_input_sequence(seq_no);
 	unsigned int duration = parse_input_duration(work_time);
@@ -146,6 +150,7 @@ void add_work_time(int argc, char** argv){
 	time_t curr_time = time(NULL);
 	// 创建任务详情
 	s_task_detail* detail = (s_task_detail*)malloc(sizeof(s_task_detail));
+	detail->title = title;
 	detail->date = curr_time/24/60/60;
 	detail->cost = duration;
 
@@ -318,6 +323,8 @@ void list(int argc, char** argv){
 			concat_ary[concat_ary_len++] = int2str(task->par_seq,0);
 			concat_ary[concat_ary_len++] = "]";
 		}
+		int seq_prev_len = strlen(concat_string(concat_ary,concat_ary_len));
+
 		// 计算总工时消耗
 		total_worktime = 0;
 		task_details_len = task->task_details_len;
@@ -351,11 +358,12 @@ void list(int argc, char** argv){
 		concat_ary[concat_ary_len++] = task->title;
 		col_ary[col_ary_len++] = concat_string(concat_ary,concat_ary_len);
 
-		temp_tm = localtime(&(task->begin_time));
 		if(show_time){
+			// 第三列
 			concat_ary_len = 0;
 			concat_ary = (char**)malloc(sizeof(char*) * 22);
-			// 第三列
+
+			temp_tm = localtime(&(task->begin_time));
 //			printf("\t[%4d/%02d/%02d %02d:%02d]",temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
 			concat_ary[concat_ary_len++] = "[";
 			concat_ary[concat_ary_len++] = int2str(temp_tm->tm_year + 1900,4);
@@ -383,10 +391,11 @@ void list(int argc, char** argv){
 				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_min,2);
 				concat_ary[concat_ary_len++] = "]";
 			}
+			//		printf("\n");
 			col_ary[col_ary_len++] = concat_string(concat_ary,concat_ary_len);
 		}
-//		printf("\n");
 
+		// 组装行对象
 		temp_row = (s_print_row*)malloc(sizeof(s_print_row));
 		temp_row->char_ary = col_ary;
 		temp_row->len = col_ary_len;
@@ -395,37 +404,52 @@ void list(int argc, char** argv){
 		// 显示工时详情
 		if(show_detail){
 			for(int j=0;j<task_details_len;j++){
+				task_detail = (task->task_details)[j];
+
 				// 设置行数据
 				col_ary_len = 0;
-				col_ary = (char**)malloc(sizeof(char*) * 2);
+				col_ary = (char**)malloc(sizeof(char*) * 3);
 
-				// 缩进，第一列
-				col_ary[col_ary_len++] = "";
-
-				task_detail = (task->task_details)[j];
-				temp_time = task_detail->date * 24*60*60;
-				temp_tm = localtime(&temp_time);
-				// 第二列
+				// 第一列
 				concat_ary_len = 0;
-				concat_ary = (char**)malloc(sizeof(char*) * 10);
+				concat_ary = (char**)malloc(sizeof(char*) * 5);
 
-//				printf("\t--[%4d/%02d/%02d]%d", temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2);
-				concat_ary[concat_ary_len++] = "--[";
-				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_year + 1900,4);
-				concat_ary[concat_ary_len++] = "/";
-				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_mon + 1, 2);
-				concat_ary[concat_ary_len++] = "/";
-				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_mday, 2);
-				concat_ary[concat_ary_len++] = "]";
+				concat_ary[concat_ary_len++] = creat_space_string(seq_prev_len);
+				concat_ary[concat_ary_len++] = "[";
 				concat_ary[concat_ary_len++] = int2str(task_detail->cost /2,0);
 				if(task_detail->cost % 2 != 0){
 //					printf(".5");
 					concat_ary[concat_ary_len++] = ".5";
 				}
 //				printf("h\n");
-				concat_ary[concat_ary_len++] = "h";
+				concat_ary[concat_ary_len++] = "h]";
 				col_ary[col_ary_len++] = concat_string(concat_ary,concat_ary_len);
 
+				// 第二列
+				if(task_detail->title == NULL || strlen(task_detail->title) == 0){
+					col_ary[col_ary_len++] = "none";
+				}else{
+					col_ary[col_ary_len++] = task_detail->title;
+				}
+
+				// 第三列
+				temp_time = task_detail->date * 24*60*60;
+				temp_tm = localtime(&temp_time);
+
+				concat_ary_len = 0;
+				concat_ary = (char**)malloc(sizeof(char*) * 10);
+
+//				printf("\t--[%4d/%02d/%02d]%d", temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2);
+				concat_ary[concat_ary_len++] = "[";
+				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_year + 1900,4);
+				concat_ary[concat_ary_len++] = "/";
+				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_mon + 1, 2);
+				concat_ary[concat_ary_len++] = "/";
+				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_mday, 2);
+				concat_ary[concat_ary_len++] = "]";
+				col_ary[col_ary_len++] = concat_string(concat_ary,concat_ary_len);
+
+				// 组装行对象
 				temp_row = (s_print_row*)malloc(sizeof(s_print_row));
 				temp_row->char_ary = col_ary;
 				temp_row->len = col_ary_len;

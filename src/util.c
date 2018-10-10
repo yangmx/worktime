@@ -169,6 +169,15 @@ void print_row_ary(s_print_row** two_level_char_ary,int size){
 	}
 }
 
+char* creat_space_string(int len){
+	char* new_string = (char*)malloc(sizeof(char)*(len + 1));
+	for(int i=0;i<len;i++){
+		new_string[i] = ' ';
+	}
+	new_string[len] = '\0';
+	return new_string;
+}
+
 void print_space(int len){
 	for(int i=0;i<len;i++){
 		printf(" ");
