@@ -9,5 +9,6 @@ void list(int argc, char** argv);
 void add_work_time(int argc, char** argv);
 void delete_task(int argc, char** argv);
 void finish_task(int argc, char** argv);
+void restore_task(int argc, char** argv);
 
 #endif

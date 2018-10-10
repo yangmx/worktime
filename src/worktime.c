@@ -13,21 +13,27 @@
 
 int main(int argc, char** argv){
 	if(argc > 1){
-		if(strcmp("add",argv[1])==0){
+		if(strcmp("t",argv[1])==0){
 			add(argc, argv);
-		}else if(strcmp("list",argv[1]) == 0){
+		}else if(strcmp("l",argv[1]) == 0){
 			list(argc, argv);
-		}else if(strcmp("awk",argv[1]) == 0){
+		}else if(strcmp("h",argv[1]) == 0){
 			add_work_time(argc, argv);
-		}else if(strcmp("cmp",argv[1]) == 0){
+		}else if(strcmp("c",argv[1]) == 0){
 			finish_task(argc, argv);
-		}else if(strcmp("del",argv[1]) == 0){
+		}else if(strcmp("d",argv[1]) == 0){
 			delete_task(argc, argv);
+		}else if(strcmp("r",argv[1]) == 0){
+			restore_task(argc, argv);
 		}else{
 			fprintf(stderr,"command is wrong\n");
 			exit(0);
 		}
 	}
+}
+
+void restore_task(int argc, char** argv){
+	restore_file(WORKTIME_FILENAME);
 }
 
 void delete_task(int argc, char** argv){
@@ -237,15 +243,26 @@ void add(int argc, char** argv){
 void list(int argc, char** argv){
 	int show_all = 0;
 	int show_detail = 1;
-	for(int i=2;i<argc;i++){
-		if(strcmp("-a",argv[i]) == 0){
-			show_all = 1;
-		}else if(strcmp("-h",argv[i]) == 0){
-			show_detail = 0;
+	int show_time = 0;
+	if(argc >= 3){
+		char* param = argv[2];
+		int param_len = strlen(param);
+		for (int i = 0; i < param_len; i++) {
+			if ('a' == param[i]) {
+				show_all = 1;
+			} else if ('h' == param[i]) {
+				show_detail = 0;
+			} else if ('t' == param[i]) {
+				show_time = 1;
+			}
 		}
 	}
 
 	s_worktime* worktime = parse_worktime(WORKTIME_FILENAME);
+	if(worktime == NULL){
+		fprintf(stderr,"file is empty\n");
+		exit(0);
+	}
 	int tasks_len = worktime->tasks_len;
 	s_task * task;
 	struct tm * temp_tm;
@@ -253,14 +270,53 @@ void list(int argc, char** argv){
 	int task_details_len;
 	time_t temp_time;
 	int total_worktime;
+	s_print_row** row_ary = (s_print_row**)malloc(sizeof(s_print_row*)*20);
+	int row_ary_len = 0;
+	int row_ary_size=20;
+	s_print_row** temp_row_ary;
+	s_print_row* temp_row;
+
+	char** col_ary;
+	int col_ary_len;
+
+	char** concat_ary;
+	int concat_ary_len;
+
+	int row_len;
 	for(int i=0;i<tasks_len;i++){
 		task = (worktime->tasks)[i];
 		if(task->state == 1 && show_all == 0){
 			continue;
 		}
-		printf("#%u",task->seq);
+		// 判断行数，并扩展数组
+		row_len = 1;
+		if(show_detail){
+			row_len += task->task_details_len;;
+		}
+		if(row_len + row_ary_len > row_ary_size){
+			row_ary_size += 20;
+			temp_row_ary = (s_print_row**)malloc(sizeof(s_print_row*)*(row_ary_size));
+			for(int j=0;j<row_ary_len;j++){
+				temp_row_ary[j] = row_ary[j];
+			}
+			row_ary = temp_row_ary;
+		}
+
+		col_ary_len = 0;
+		col_ary = (char**)malloc(sizeof(char*) * 3);
+
+		// 第一列
+		concat_ary_len = 0;
+		concat_ary = (char**)malloc(sizeof(char*) * 11);
+//		printf("#%u",task->seq);
+		concat_ary[concat_ary_len++] = "#";
+		concat_ary[concat_ary_len++] = int2str(task->seq,0);
+
 		if(task->par_seq == 1){
-			printf("[#%u]",task->par_seq);
+//			printf("[#%u]",task->par_seq);
+			concat_ary[concat_ary_len++] = "[#";
+			concat_ary[concat_ary_len++] = int2str(task->par_seq,0);
+			concat_ary[concat_ary_len++] = "]";
 		}
 		// 计算总工时消耗
 		total_worktime = 0;
@@ -268,34 +324,115 @@ void list(int argc, char** argv){
 		for(int j=0;j<task_details_len;j++){
 			total_worktime += (task->task_details)[j]->cost;
 		}
-		printf("\t[%d]",task->state);
 		if(total_worktime % 2 == 0){
-			printf("[%dh]", total_worktime / 2);
+//			printf("[%dh]", total_worktime / 2);
+			concat_ary[concat_ary_len++] = "[";
+			concat_ary[concat_ary_len++] = int2str(total_worktime / 2,0);
+			concat_ary[concat_ary_len++] = "h]";
 		}else{
-			printf("[%d.5h]", total_worktime / 2);
+//			printf("[%d.5h]", total_worktime / 2);
+			concat_ary[concat_ary_len++] = "[";
+			concat_ary[concat_ary_len++] = int2str(total_worktime / 2,0);
+			concat_ary[concat_ary_len++] = ".5h]";
 		}
-		printf("%s", task->title);
+		col_ary[col_ary_len++] = concat_string(concat_ary,concat_ary_len);
+		// 不处理释放空间问题
+
+		// 第二列
+		concat_ary_len = 0;
+		concat_ary = (char**)malloc(sizeof(char*) * 4);
+
+//		printf("\t[%d]",task->state);
+		concat_ary[concat_ary_len++] = "[";
+		concat_ary[concat_ary_len++] = int2str(task->state,0);
+		concat_ary[concat_ary_len++] = "]";
+
+//		printf("%s", task->title);
+		concat_ary[concat_ary_len++] = task->title;
+		col_ary[col_ary_len++] = concat_string(concat_ary,concat_ary_len);
+
 		temp_tm = localtime(&(task->begin_time));
-		printf("[%4d/%02d/%02d %02d:%02d]",temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
-		if(task->end_time != 0){
-			temp_tm = localtime(&(task->end_time));
-			printf("[%4d/%02d/%02d %02d:%02d]",temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
+		if(show_time){
+			concat_ary_len = 0;
+			concat_ary = (char**)malloc(sizeof(char*) * 22);
+			// 第三列
+//			printf("\t[%4d/%02d/%02d %02d:%02d]",temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
+			concat_ary[concat_ary_len++] = "[";
+			concat_ary[concat_ary_len++] = int2str(temp_tm->tm_year + 1900,4);
+			concat_ary[concat_ary_len++] = "/";
+			concat_ary[concat_ary_len++] = int2str(temp_tm->tm_mon + 1,2);
+			concat_ary[concat_ary_len++] = "/";
+			concat_ary[concat_ary_len++] = int2str(temp_tm->tm_mday,2);
+			concat_ary[concat_ary_len++] = " ";
+			concat_ary[concat_ary_len++] = int2str(temp_tm->tm_hour,2);
+			concat_ary[concat_ary_len++] = ":";
+			concat_ary[concat_ary_len++] = int2str(temp_tm->tm_min,2);
+			concat_ary[concat_ary_len++] = "]";
+			if(task->end_time != 0){
+				temp_tm = localtime(&(task->end_time));
+//				printf("[%4d/%02d/%02d %02d:%02d]",temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,temp_tm->tm_hour,temp_tm->tm_min);
+				concat_ary[concat_ary_len++] = "[";
+				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_year + 1900,4);
+				concat_ary[concat_ary_len++] = "/";
+				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_mon + 1,2);
+				concat_ary[concat_ary_len++] = "/";
+				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_mday,2);
+				concat_ary[concat_ary_len++] = " ";
+				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_hour,2);
+				concat_ary[concat_ary_len++] = ":";
+				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_min,2);
+				concat_ary[concat_ary_len++] = "]";
+			}
+			col_ary[col_ary_len++] = concat_string(concat_ary,concat_ary_len);
 		}
-		printf("\n");
-		fflush(stdout);
+//		printf("\n");
+
+		temp_row = (s_print_row*)malloc(sizeof(s_print_row));
+		temp_row->char_ary = col_ary;
+		temp_row->len = col_ary_len;
+		row_ary[row_ary_len++] = temp_row;
+
 		// 显示工时详情
 		if(show_detail){
 			for(int j=0;j<task_details_len;j++){
+				// 设置行数据
+				col_ary_len = 0;
+				col_ary = (char**)malloc(sizeof(char*) * 2);
+
+				// 缩进，第一列
+				col_ary[col_ary_len++] = "";
+
 				task_detail = (task->task_details)[j];
 				temp_time = task_detail->date * 24*60*60;
 				temp_tm = localtime(&temp_time);
-				if(task_detail->cost % 2 == 0){
-					printf("\t--[%4d/%02d/%02d]%dh\n", temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2);
-				} else{
-					printf("\t--[%4d/%02d/%02d]%d.5h\n", temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2);
+				// 第二列
+				concat_ary_len = 0;
+				concat_ary = (char**)malloc(sizeof(char*) * 10);
+
+//				printf("\t--[%4d/%02d/%02d]%d", temp_tm->tm_year + 1900, temp_tm->tm_mon+1,temp_tm->tm_mday,task_detail->cost /2);
+				concat_ary[concat_ary_len++] = "--[";
+				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_year + 1900,4);
+				concat_ary[concat_ary_len++] = "/";
+				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_mon + 1, 2);
+				concat_ary[concat_ary_len++] = "/";
+				concat_ary[concat_ary_len++] = int2str(temp_tm->tm_mday, 2);
+				concat_ary[concat_ary_len++] = "]";
+				concat_ary[concat_ary_len++] = int2str(task_detail->cost /2,0);
+				if(task_detail->cost % 2 != 0){
+//					printf(".5");
+					concat_ary[concat_ary_len++] = ".5";
 				}
-				fflush(stdout);
+//				printf("h\n");
+				concat_ary[concat_ary_len++] = "h";
+				col_ary[col_ary_len++] = concat_string(concat_ary,concat_ary_len);
+
+				temp_row = (s_print_row*)malloc(sizeof(s_print_row));
+				temp_row->char_ary = col_ary;
+				temp_row->len = col_ary_len;
+				row_ary[row_ary_len++] = temp_row;
 			}
 		}
 	}
+	// 输出
+	print_row_ary(row_ary,row_ary_len);
 }

@@ -1,8 +1,46 @@
 #include <stdio.h>
 #include <string.h>
+#include <io.h>
 
 #include "parse.h"
 #include "util.h"
+
+#define BUFFER_SIZE 4096
+
+unsigned long get_file_size(char* file_path){
+	/*FILE* fp;
+	if((fp = fopen(file_path,"rb")) == NULL){
+		return 0;
+	}
+	unsigned char buffer[BUFFER_SIZE];
+	unsigned long size = 0,temp_size;
+	while(!feof(fp)){
+		temp_size = fread(buffer,1,BUFFER_SIZE,fp);
+		size += temp_size;
+	}
+
+	fclose(fp);*/
+
+	// 判断文件夹是否存在
+	intptr_t handle;
+	struct _finddata_t * findData = (struct _finddata_t *) malloc(
+			sizeof(struct _finddata_t));
+	handle = _findfirst("worktime.wt", findData);    // 查找目录中的第一个文件
+	if (handle == -1) {
+		return 0;
+	}
+
+	do {
+		if (findData->attrib & _A_SUBDIR) {
+			continue;
+		}
+		return findData->size;
+	} while (_findnext(handle, findData) == 0);    // 查找目录中的下一个文件
+
+	_findclose(handle);    // 关闭搜索句柄
+
+	return 0;
+}
 
 s_worktime* parse_worktime(char* file_path){
 	// 读取数据
@@ -23,9 +61,6 @@ s_worktime* parse_worktime(char* file_path){
 	// 读取版本
 	char* version = parse_buffer_string(buffer,&begin_pos,total_size);
 	worktime->version = version;
-	// 读取上一个备份号
-	int prev_seq = parse_buffer_int_simply(buffer,&begin_pos,total_size);
-	worktime->prev_seq=prev_seq;
 	// 读取序列号
 	int sequence = parse_buffer_int_simply(buffer,&begin_pos,total_size);
 	worktime->sequence=sequence;
@@ -102,22 +137,20 @@ s_task* parse_task(unsigned char* buffer,unsigned long * begin_pos,unsigned long
 
 unsigned int parse_input_sequence(char* seq_no){
 	int seq_no_len = strlen(seq_no);
-	if(seq_no_len < 2){
-		fprintf(stderr,"number is wrong\n");
-		exit(0);
-	}
+//	if(seq_no_len < 2){
+//		fprintf(stderr,"number is wrong\n");
+//		exit(0);
+//	}
 
-	if(*seq_no != '#'){
-		fprintf(stderr,"number is not start with #\n");
-		exit(0);
-	}
+//	if(*seq_no != '#'){
+//		fprintf(stderr,"number is not start with #\n");
+//		exit(0);
+//	}
 	unsigned int value = 0,temp_val = 0;
-	for(int i=1;i<seq_no_len;i++){
+	for(int i=0;i<seq_no_len;i++){
 		temp_val = seq_no[i] - '0';
 		if(temp_val >= 0 && temp_val <= 9){
 			value = value * 10 + temp_val;
-		}else{
-			break;
 		}
 	}
 	if(value == 0){

@@ -3,6 +3,8 @@
 
 #include <time.h>
 
+#define BACKUP_DIR ".backups"
+
 typedef struct task_detail
 {
 	short date;
@@ -26,7 +28,6 @@ typedef struct worktime
 {
 	char * version;
 	unsigned int sequence;
-	unsigned int prev_seq;
 	s_task** tasks;
 	unsigned int tasks_len;
 } s_worktime;

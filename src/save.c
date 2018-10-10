@@ -6,26 +6,23 @@
 #include "bean.h"
 #include "save.h"
 #include "util.h"
+#include "parse.h"
 
-#define BACKUP_DIR ".backups"
+void backup_file(char* file_path){
+	unsigned int next_seq = find_curr_backup_seq();
+	next_seq ++;
 
-void backup_file(char* file_path,unsigned int prev_seq){
 	FILE* src_fp;
 	if((src_fp = fopen(file_path,"rb")) != NULL){
-		// 判断文件夹是否存在
-		if(access(BACKUP_DIR,F_OK) == -1){
-			system("mkdir .backups");
-			system("attrib +h .backups");
-		}
 		// 生成路径字符串
-		char* prev_seq_str = int2str(prev_seq);
-		int bk_file_path_len = strlen(BACKUP_DIR) + 1 + strlen(file_path) + 1 + strlen(prev_seq_str);
-		char * bk_file_path = (char*)malloc(sizeof(char) * (bk_file_path_len + 1));
-		memcpy(bk_file_path,BACKUP_DIR,strlen(BACKUP_DIR) + 1);
-		strcat(bk_file_path,"/");
-		strcat(bk_file_path,file_path);
-		strcat(bk_file_path,".");
-		strcat(bk_file_path,prev_seq_str);
+		char* string_ary[5];
+		string_ary[0] = BACKUP_DIR;
+		string_ary[1] = "/";
+		string_ary[2] = file_path;
+		string_ary[3] = ".";
+		string_ary[4] = int2str(next_seq, 0);
+		char * bk_file_path = concat_string(string_ary, 5);
+
 		FILE * dest_fp;
 		if((dest_fp = fopen(bk_file_path,"wb+")) != NULL){
 			unsigned char * buffer[4096];
@@ -34,16 +31,48 @@ void backup_file(char* file_path,unsigned int prev_seq){
 				buffer_pos = fread(buffer,1,4096,src_fp);
 				fwrite(buffer,1,buffer_pos,dest_fp);
 			}
+			fclose(dest_fp);
 		}
-//		fclose(dest_fp);
 		fclose(src_fp);
+	}
+}
+
+void restore_file(char* file_path){
+	unsigned int curr_seq = find_curr_backup_seq();
+
+	// 生成路径字符串
+	char* string_ary[5];
+	string_ary[0] = BACKUP_DIR;
+	string_ary[1] = "/";
+	string_ary[2] = file_path;
+	string_ary[3] = ".";
+	string_ary[4] = int2str(curr_seq, 0);
+	char * bk_file_path = concat_string(string_ary,5);
+
+	FILE* src_fp;
+	if ((src_fp = fopen(bk_file_path, "rb")) != NULL) {
+		FILE * dest_fp;
+		if ((dest_fp = fopen(file_path, "wb+")) != NULL) {
+			unsigned char * buffer[4096];
+			int buffer_pos = 0;
+			while (!feof(src_fp)) {
+				buffer_pos = fread(buffer, 1, 4096, src_fp);
+				fwrite(buffer, 1, buffer_pos, dest_fp);
+			}
+			fclose(dest_fp);
+		}
+		fclose(src_fp);
+		printf("restore success! file name:[%s]\n", bk_file_path);
+		// 删除原备份文件
+		remove(bk_file_path);
+	}else{
+		printf("restore fail! file not exists!");
 	}
 }
 
 void fwrite_worktime(char* file_path, s_worktime* worktime){
 	// 备份文件
-	worktime->prev_seq = worktime->prev_seq + 1;
-	backup_file(file_path, worktime->prev_seq);
+	backup_file(file_path);
 	// 打开写文件
 	FILE* fp;
 	if((fp = fopen(file_path,"wb+")) == NULL){
@@ -52,10 +81,6 @@ void fwrite_worktime(char* file_path, s_worktime* worktime){
 	}
 	// 写版本号
 	fwrite(worktime->version,1,strlen(worktime->version),fp);
-	fputc('\0',fp);
-
-	// 写上一个备份号
-	fwrite_int_simply(worktime->prev_seq,fp);
 	fputc('\0',fp);
 
 	// 写序列号
@@ -112,5 +137,38 @@ void fwrite_task(s_task * task, FILE * fp){
 		// 写工时时间
 		fputc((task->task_details)[i]->cost,fp);
 	}
+}
+
+unsigned int find_curr_backup_seq(){
+	// 判断文件夹是否存在
+	if(access(BACKUP_DIR,F_OK) == -1){
+		system("mkdir .backups");
+		system("attrib +h .backups");
+	}
+	intptr_t handle;
+	struct _finddata_t * findData = (struct _finddata_t *) malloc(
+			sizeof(struct _finddata_t));
+	handle = _findfirst(".backups\\worktime.wt.*", findData);    // 查找目录中的第一个文件
+	if (handle == -1) {
+		return 1;
+	}
+
+	char* temp_file_name;
+	int curr_max_value = 1,temp_value;
+	int prev_len = strlen("worktime.wt.");
+	do {
+		if (findData->attrib & _A_SUBDIR) {
+			continue;
+		}
+		temp_file_name = findData->name;
+		temp_value = parse_input_sequence(temp_file_name + prev_len);
+		if(temp_value > curr_max_value){
+			curr_max_value = temp_value;
+		}
+	} while (_findnext(handle, findData) == 0);    // 查找目录中的下一个文件
+
+	_findclose(handle);    // 关闭搜索句柄
+
+	return curr_max_value;
 }
 

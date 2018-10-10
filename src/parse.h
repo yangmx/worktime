@@ -3,6 +3,8 @@
 
 #include "bean.h"
 
+unsigned long get_file_size(char* file_path);
+
 s_worktime* parse_worktime(char* file_path);
 s_task* parse_task(unsigned char* buffer,unsigned long * begin_pos,unsigned long total_size);
 
