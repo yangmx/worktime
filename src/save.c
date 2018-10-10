@@ -102,7 +102,7 @@ void restore_file(char* file_path){
 		// 删除原备份文件
 		remove(bk_file_path);
 	}else{
-		printf("restore fail! file not exists!");
+		printf("restore fail! file not exists!\n");
 	}
 }
 
