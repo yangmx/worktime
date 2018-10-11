@@ -289,6 +289,7 @@ void list(int argc, char** argv, char* file_path){
 	int show_all = 0;
 	int show_detail = 1;
 	int show_time = 0;
+	int spec_mday = 0;
 	if(argc >= 3){
 		char* param = argv[2];
 		int param_len = strlen(param);
@@ -299,6 +300,29 @@ void list(int argc, char** argv, char* file_path){
 				show_detail = 0;
 			} else if ('t' == param[i]) {
 				show_time = 1;
+			} else if ('d' == param[i] && spec_mday == 0) {
+				if(i + 1 < param_len){
+					int temp_day ,temp_spec_mday;
+					for(;i< param_len - 1;i++){
+						// 取i+1的值，因为外层循环还有个i++
+						temp_day = param[i+1] - '0';
+						if(temp_day >= 0 && temp_day <= 9){
+							temp_spec_mday = spec_mday * 10 + temp_day;
+							if(temp_spec_mday <= 31){
+								spec_mday = temp_spec_mday;
+							}else{
+								break;
+							}
+						}else{
+							break;
+						}
+					}
+				}else{
+					struct tm * today_tm;
+					time_t today_time = time(NULL);
+					today_tm = localtime(&today_time);
+					spec_mday = today_tm->tm_mday;
+				}
 			}
 		}
 	}
@@ -311,6 +335,7 @@ void list(int argc, char** argv, char* file_path){
 	int tasks_len = worktime->tasks_len;
 	s_task * task;
 	struct tm * temp_tm;
+	struct tm * task_begin_tm;
 	s_task_detail * task_detail;
 	int task_details_len;
 	time_t temp_time;
@@ -346,6 +371,34 @@ void list(int argc, char** argv, char* file_path){
 			}
 			row_ary = temp_row_ary;
 		}
+		// 时间筛选
+		task_begin_tm = localtime(&(task->begin_time));
+		int display_task_row = 0;
+		if(spec_mday == 0 || (spec_mday > 0 && task_begin_tm->tm_mday == spec_mday)){
+			// 若创建日期是当前，则必显示该任务
+			display_task_row = 1;
+		}
+		// 计算总工时消耗
+		total_worktime = 0;
+		task_details_len = task->task_details_len;
+		for(int j=0;j<task_details_len;j++){
+			task_detail = (task->task_details)[j];
+			// 获取日期
+			temp_time = task_detail->date * 24*60*60;
+			temp_tm = localtime(&temp_time);
+
+			if(spec_mday > 0 && temp_tm->tm_mday != spec_mday){
+				continue;
+			}
+			total_worktime += (task->task_details)[j]->cost;
+			// 若一致，则必显示该行。
+			if(display_task_row == 0){
+				display_task_row = 1;
+			}
+		}
+		if(!display_task_row){
+			continue;
+		}
 
 		col_ary_len = 0;
 		col_ary = (char**)malloc(sizeof(char*) * 3);
@@ -365,12 +418,6 @@ void list(int argc, char** argv, char* file_path){
 		}
 		int seq_prev_len = strlen(concat_string(concat_ary,concat_ary_len));
 
-		// 计算总工时消耗
-		total_worktime = 0;
-		task_details_len = task->task_details_len;
-		for(int j=0;j<task_details_len;j++){
-			total_worktime += (task->task_details)[j]->cost;
-		}
 		if(total_worktime % 2 == 0){
 //			printf("[%dh]", total_worktime / 2);
 			concat_ary[concat_ary_len++] = "[";
@@ -445,6 +492,13 @@ void list(int argc, char** argv, char* file_path){
 		if(show_detail){
 			for(int j=0;j<task_details_len;j++){
 				task_detail = (task->task_details)[j];
+				// 获取日期
+				temp_time = task_detail->date * 24*60*60;
+				temp_tm = localtime(&temp_time);
+
+				if(spec_mday > 0 && temp_tm->tm_mday != spec_mday){
+					continue;
+				}
 
 				// 设置行数据
 				col_ary_len = 0;
@@ -473,9 +527,6 @@ void list(int argc, char** argv, char* file_path){
 				}
 
 				// 第三列
-				temp_time = task_detail->date * 24*60*60;
-				temp_tm = localtime(&temp_time);
-
 				concat_ary_len = 0;
 				concat_ary = (char**)malloc(sizeof(char*) * 10);
 
