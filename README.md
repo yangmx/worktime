@@ -7,7 +7,7 @@
 * 命令行：`gcc -O3 -o out\wt.exe src\*.c `
 
 ## 操作方法
-* 增加任务：`t [title]`或`task [title]`
+* 增加任务：`t <p[number]> [title]`或`task <p[number]> [title]`
 * 完成任务：`c [number]`或`complete [number]`
     * `number`可带或不带`#`
 * 删除任务：`d [number]`或`delete [number]`

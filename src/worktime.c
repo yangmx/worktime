@@ -218,11 +218,31 @@ void add_work_time(int argc, char** argv){
 }
 
 void add(int argc, char** argv){
-	if(argc != 3){
+	int pid = 0;
+	char* title = argv[2];
+	char* pid_str;
+	if(argc == 3){
+		title = argv[2];
+	} else if(argc == 4){
+		title = argv[3];
+		pid_str = argv[2];
+		int temp_pid;
+		int pid_len = strlen(pid_str);
+		if(pid_str[0] == 'p' && strlen(pid_str) > 1){
+			for(int i=1;i<pid_len;i++){
+				temp_pid = pid_str[i] - '0';
+				if(temp_pid >= 0 && temp_pid <= 9){
+					pid = pid * 10 + temp_pid;
+				}else{
+					fprintf(stderr, "parent sequence is wrong\n");
+					exit(0);
+				}
+			}
+		}
+	} else{
 		fprintf(stderr,"the input is wrong\n");
 		exit(0);
 	}
-	char* title = argv[2];
 
 	// 解析原数据
 	s_worktime* worktime = parse_worktime(WORKTIME_FILENAME);
@@ -244,7 +264,7 @@ void add(int argc, char** argv){
 	s_task* task = (s_task*)malloc(sizeof(s_task));
 	task->title=title;
 	task->seq = next_seq;
-	task->par_seq = 0;
+	task->par_seq = pid;
 	task->state = 0;
 	task->begin_time=curr_time;
 	task->end_time=0;
@@ -317,7 +337,8 @@ void list(int argc, char** argv, char* file_path){
 							break;
 						}
 					}
-				}else{
+				}
+				if(spec_mday == 0){
 					struct tm * today_tm;
 					time_t today_time = time(NULL);
 					today_tm = localtime(&today_time);
@@ -410,7 +431,7 @@ void list(int argc, char** argv, char* file_path){
 		concat_ary[concat_ary_len++] = "#";
 		concat_ary[concat_ary_len++] = int2str(task->seq,0);
 
-		if(task->par_seq == 1){
+		if(task->par_seq > 0){
 //			printf("[#%u]",task->par_seq);
 			concat_ary[concat_ary_len++] = "[#";
 			concat_ary[concat_ary_len++] = int2str(task->par_seq,0);
